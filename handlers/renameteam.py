@@ -1,4 +1,5 @@
 import re
+import copy
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
@@ -57,10 +58,11 @@ class RenameTeam(BaseHandler):
             return RenameTeam.CHOOSING_END
 
         if old_team_name in self.get_chat_data_teams():
-            self.get_chat_data_teams()[new_team_name] = self.get_chat_data_teams().pop(old_team_name)
+            self.get_chat_data_teams()[new_team_name] = copy.deepcopy(self.get_chat_data_teams()[old_team_name])
+            self.get_chat_data_teams().pop(old_team_name)
 
             update.message.reply_text(
-                f'Team "{old_team_name}" was renamed to "{new_team_name}"',
+                f'Team "{old_team_name}" was renamed to "{new_team_name}"'
             )
 
         return RenameTeam.CHOOSING_END
