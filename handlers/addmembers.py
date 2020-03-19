@@ -48,10 +48,10 @@ class AddMembers(BaseHandler):
 
     def choose_members(self, update, context: CallbackContext):
         _team = context.user_data['team']
-        _existed_members = self.get_team_members(_team)
         _members = list(
             filter(
-                lambda x: x.startswith('@') and x not in _existed_members, update.message.text.split(' ')
+                lambda x: x.startswith('@') and x not in self.get_team_members(_team),
+                update.message.text.split(' ')
             )
         )
 
@@ -63,7 +63,7 @@ class AddMembers(BaseHandler):
             )
         else:
             update.message.reply_text(
-                f'No members were added to the "{_team}"'
+                f'No members were added to the team "{_team}"'
             )
 
         return AddMembers.CHOOSING_END
