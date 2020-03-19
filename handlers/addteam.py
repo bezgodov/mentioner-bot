@@ -1,3 +1,5 @@
+import re
+
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler
@@ -26,8 +28,7 @@ class AddTeam(BaseHandler):
     def choose_name(self, update, context: CallbackContext):
         name = update.message.text
 
-        # TODO: add regex
-        if len(name) > 1 and len(name) < 16 and not name.startswith('@') and not name.startswith('/'):
+        if re.match(r'[a-zа-яё._-]{2,16}', name, re.MULTILINE | re.IGNORECASE):
             if name.lower() in list(map(str.lower, self.get_chat_data_teams().keys())):
                 update.message.reply_text(
                     f'Team "{name}" already exists, try another name'
