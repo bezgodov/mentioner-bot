@@ -43,7 +43,9 @@ class Mention(BaseHandler):
         if _members:
             update.message.reply_text(' '.join(_members))
         else:
-            update.message.reply_text('Members were\'t found or something went wrong')
-            return Mention.MENTION
+            update.message.reply_text(
+                'Members were\'t found or something went wrong',
+                reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
+            )
 
         return Mention.CHOOSING_END
