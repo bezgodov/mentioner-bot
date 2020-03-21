@@ -5,6 +5,7 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler
+from classes.app import App
 
 class RenameTeam(BaseHandler):
     CHOOSING_END, CHOOSING_TEAM, CHOOSING_NEW_NAME = range(-1, 2)
@@ -12,7 +13,7 @@ class RenameTeam(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start),
+                CommandHandler(self.name, self.start, filters=App.filters.admin),
             ],
             states={
                 RenameTeam.CHOOSING_TEAM: [MessageHandler(Filters.text, self.choose_team)],

@@ -4,6 +4,7 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler
+from classes.app import App
 
 class RemoveMembers(BaseHandler):
     CHOOSING_END, CHOOSING_TEAM, CHOOSING_MEMBERS = range(-1, 2)
@@ -11,7 +12,7 @@ class RemoveMembers(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start),
+                CommandHandler(self.name, self.start, filters=App.filters.admin),
             ],
             states={
                 RemoveMembers.CHOOSING_TEAM: [MessageHandler(Filters.text, self.choose_team)],

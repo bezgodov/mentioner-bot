@@ -3,6 +3,7 @@ import re
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler
+from classes.app import App
 
 class AddTeam(BaseHandler):
     CHOOSING_END, CHOOSING_NAME = range(-1, 1)
@@ -10,7 +11,7 @@ class AddTeam(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start),
+                CommandHandler(self.name, self.start, filters=App.filters.admin),
             ],
             states={
                 AddTeam.CHOOSING_NAME: [MessageHandler(Filters.text, self.choose_name)],
