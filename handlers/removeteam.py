@@ -1,9 +1,9 @@
 import re
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
-from classes.handler import BaseHandler
+from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
 
 class RemoveTeam(BaseHandler):
@@ -22,8 +22,13 @@ class RemoveTeam(BaseHandler):
 
         self.updater.dispatcher.add_handler(handler)
 
-    def start(self, update, context: CallbackContext):
-        markup = ReplyKeyboardMarkup(map(lambda x: [x], self.get_teams()), one_time_keyboard=True)
+    def start(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+
+        if not HandlerHelpers.check_teams_existence(update):
+            return RemoveTeam.CHOOSING_END
+
+        markup = ReplyKeyboardMarkup(map(lambda x: [x], HandlerHelpers.get_teams(chat_id)), one_time_keyboard=True)
         update.message.reply_text(
             'Choose team to remove',
             reply_markup=markup
@@ -31,17 +36,27 @@ class RemoveTeam(BaseHandler):
 
         return RemoveTeam.CHOOSING_TEAM
 
-    def choose_team(self, update, context: CallbackContext):
+    def choose_team(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
         team = update.message.text
 
-        if not re.match(f'^({self.make_teams_regex()})$', team):
-            update.message.reply_text(f'Team "{team}" was\'t found, try again')
+        if not re.match(f'^({HandlerHelpers.make_teams_regex(chat_id)})$', team):
+            update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
             return RemoveTeam.CHOOSING_TEAM
 
-        self.get_chat_data_teams().pop(team, None)
-        update.message.reply_text(
-            f'Team "{team}" was successfully removed',
-            reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
-        )
+        document = App.db.get_teams().find_one_and_delete({
+            'chat_id': chat_id,
+            'name': team,
+        })
+        if document:
+            update.message.reply_text(
+                f'Team "{team}" was successfully removed',
+                reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
+            )
+        else:
+            update.message.reply_text(
+                f'Team "{team}" wasn\'t removed due to some errors, try again later',
+                reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
+            )
 
         return RemoveTeam.CHOOSING_END

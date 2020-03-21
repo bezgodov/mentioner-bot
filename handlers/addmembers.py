@@ -1,9 +1,9 @@
 import re
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
-from classes.handler import BaseHandler
+from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
 
 class AddMembers(BaseHandler):
@@ -23,8 +23,13 @@ class AddMembers(BaseHandler):
 
         self.updater.dispatcher.add_handler(handler)
 
-    def start(self, update, context: CallbackContext):
-        markup = ReplyKeyboardMarkup(map(lambda x: [x], self.get_teams()), one_time_keyboard=True)
+    def start(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+
+        if not HandlerHelpers.check_teams_existence(update):
+            return AddMembers.CHOOSING_END
+
+        markup = ReplyKeyboardMarkup(map(lambda x: [x], HandlerHelpers.get_teams(chat_id)), one_time_keyboard=True)
         update.message.reply_text(
             f'Choose a team',
             reply_markup=markup
@@ -32,14 +37,14 @@ class AddMembers(BaseHandler):
 
         return AddMembers.CHOOSING_TEAM
 
-    def choose_team(self, update, context: CallbackContext):
-        team = update.message.text
+    def choose_team(self, update: Update, context: CallbackContext):
+        context.user_data['team'] = team = update.message.text
+        chat_id = update.message.chat_id
 
-        if not re.match(f'^({self.make_teams_regex()})$', team):
-            update.message.reply_text(f'Team "{team}" was\'t found, try again')
+        if not re.match(f'^({HandlerHelpers.make_teams_regex(chat_id)})$', team):
+            update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
             return AddMembers.CHOOSING_TEAM
 
-        context.user_data['team'] = team
         update.message.reply_text(
             f'Now, send user @logins separated by space to add them to team "{team}"',
             reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
@@ -47,32 +52,35 @@ class AddMembers(BaseHandler):
 
         return AddMembers.CHOOSING_MEMBERS
 
-    def choose_members(self, update, context: CallbackContext):
-        _team = context.user_data['team']
-        _members = list(
+    def choose_members(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        team = context.user_data['team']
+
+        members = list(
             filter(
-                lambda x: x.startswith('@') and x not in self.get_team_members(_team),
+                lambda x: re.match(r'@[a-z._-]{5,32}', x.lower(), re.IGNORECASE) and x not in HandlerHelpers.get_team_members(chat_id, team),
                 update.message.text.split(' ')
             )
         )
 
-        if _members:
-            self.add_members(_team, _members)
+        if members:
+            App.db.get_teams().find_one_and_update({
+                'chat_id': chat_id,
+                'name': team,
+            }, {
+                '$push': {
+                    'members': {
+                        '$each': members,
+                    },
+                },
+            })
 
             update.message.reply_text(
-                f'Greeting new members of the "{_team}" team: {" ".join(_members)}'
+                f'Greeting new members of the "{team}" team: {" ".join(members)}'
             )
         else:
             update.message.reply_text(
-                f'No members were added to the team "{_team}"'
+                f'No members were added to the team "{team}"'
             )
 
         return AddMembers.CHOOSING_END
-
-    def add_members(self, team: str, members: list):
-        key = 'members'
-
-        if key not in self.get_chat_data_teams()[team]:
-            self.get_chat_data_teams()[team][key] = {}
-
-        self.get_chat_data_teams()[team][key] = self.get_team_members(team) + members

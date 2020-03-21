@@ -1,9 +1,9 @@
 import re
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
-from classes.handler import BaseHandler
+from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
 
 class RemoveMembers(BaseHandler):
@@ -23,8 +23,13 @@ class RemoveMembers(BaseHandler):
 
         self.updater.dispatcher.add_handler(handler)
 
-    def start(self, update, context: CallbackContext):
-        markup = ReplyKeyboardMarkup(map(lambda x: [x], self.get_teams()), one_time_keyboard=True)
+    def start(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+
+        if not HandlerHelpers.check_teams_existence(update):
+            return RemoveMembers.CHOOSING_END
+
+        markup = ReplyKeyboardMarkup(map(lambda x: [x], HandlerHelpers.get_teams(chat_id)), one_time_keyboard=True)
         update.message.reply_text(
             f'Choose a team',
             reply_markup=markup
@@ -33,49 +38,49 @@ class RemoveMembers(BaseHandler):
         return RemoveMembers.CHOOSING_TEAM
 
     def choose_team(self, update, context: CallbackContext):
-        team = update.message.text
+        chat_id = update.message.chat_id
+        context.user_data['team'] = team = update.message.text
 
-        if not re.match(f'^({self.make_teams_regex()})$', team):
-            update.message.reply_text(f'Team "{team}" was\'t found, try again')
+        if not re.match(f'^({HandlerHelpers.make_teams_regex(chat_id)})$', team):
+            update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
             return RemoveMembers.CHOOSING_TEAM
 
-        context.user_data['team'] = team
         update.message.reply_text(
-            f'Now, send user @logins separated by space to remove them from the team "{team}"',
-            reply_markup=ReplyKeyboardRemove(remove_keyboard=True),
+            f'Now, send user @logins separated by space to remove them from the team "{team}" (with leading @)',
+            reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
         )
 
         return RemoveMembers.CHOOSING_MEMBERS
 
     def choose_members(self, update, context: CallbackContext):
-        _team = context.user_data['team']
-        _members = list(
+        chat_id = update.message.chat_id
+        team = context.user_data['team']
+
+        members = list(
             filter(
-                lambda x: x.startswith('@') and x in self.get_team_members(_team),
+                lambda x: x.startswith('@') and x in HandlerHelpers.get_team_members(chat_id, team),
                 update.message.text.split(' ')
             )
         )
 
-        if _members:
-            self.remove_members(_team, _members)
+        if members:
+            App.db.get_teams().find_one_and_update({
+                'chat_id': chat_id,
+                'name': team,
+            }, {
+                '$pull': {
+                    'members': {
+                        '$in': members,
+                    },
+                },
+            })
 
             update.message.reply_text(
-                f'Members who were removed from "{_team}" team: {" ".join(_members)}'
+                f'Members who were removed from "{team}" team: {" ".join(members)}'
             )
         else:
             update.message.reply_text(
-                f'No members were removed from the team "{_team}"'
+                f'No members were removed from the team "{team}"'
             )
 
         return RemoveMembers.CHOOSING_END
-
-    def remove_members(self, team: str, members_to_remove: list):
-        key = 'members'
-
-        if key not in self.get_chat_data_teams()[team]:
-            self.get_chat_data_teams()[team][key] = {}
-
-        self.get_chat_data_teams()[team][key] = filter(
-            lambda x: x not in members_to_remove,
-            self.get_chat_data_teams()[team][key]
-        )

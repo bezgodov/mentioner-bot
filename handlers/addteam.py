@@ -1,8 +1,9 @@
 import re
 
+from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
-from classes.handler import BaseHandler
+from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
 
 class AddTeam(BaseHandler):
@@ -26,23 +27,30 @@ class AddTeam(BaseHandler):
 
         return AddTeam.CHOOSING_NAME
 
-    def choose_name(self, update, context: CallbackContext):
+    def choose_name(self, update: Update, context: CallbackContext):
         name = update.message.text
 
-        if re.match(r'[a-zа-яё._-]{2,16}', name, re.MULTILINE | re.IGNORECASE):
-            if name.lower() in list(map(str.lower, self.get_chat_data_teams().keys())):
+        if re.match(r'[a-zа-яё._-]{2,16}', name.lower(), re.IGNORECASE):
+            if App.db.get_teams().find_one({
+                'name': re.compile(name.lower(), re.IGNORECASE),
+                'chat_id': update.message.chat_id
+            }):
                 update.message.reply_text(
                     f'Team "{name}" already exists, try another name'
                 )
                 return AddTeam.CHOOSING_NAME
             else:
-                self.get_chat_data_teams()[name] = {}
+                App.db.get_teams().insert_one({
+                    'name': name,
+                    'chat_id': update.message.chat_id,
+                    'members': [],
+                })
                 update.message.reply_text(
                     f'Team "{name}" was successfully created'
                 )
         else:
             update.message.reply_text(
-                f'Team "{name}" was\'t created cause name contains incorrect symbols, try again'
+                f'Team "{name}" wasn\'t created cause name contains incorrect symbols, try again'
             )
             return AddTeam.CHOOSING_NAME
 

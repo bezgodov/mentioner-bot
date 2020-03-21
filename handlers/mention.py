@@ -1,9 +1,9 @@
 import re
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
-from classes.handler import BaseHandler
+from classes.handler import BaseHandler, HandlerHelpers
 
 class Mention(BaseHandler):
     CHOOSING_END, MENTION = range(-1, 1)
@@ -23,8 +23,13 @@ class Mention(BaseHandler):
 
         self.updater.dispatcher.add_handler(handler)
 
-    def start(self, update, context: CallbackContext):
-        markup = ReplyKeyboardMarkup(map(lambda x: [x], self.get_teams()), one_time_keyboard=True)
+    def start(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+
+        if not HandlerHelpers.check_teams_existence(update):
+            return Mention.CHOOSING_END
+
+        markup = ReplyKeyboardMarkup(map(lambda x: [x], HandlerHelpers.get_teams(chat_id)), one_time_keyboard=True)
         update.message.reply_text(
             f'Choose a team',
             reply_markup=markup
@@ -33,21 +38,23 @@ class Mention(BaseHandler):
         return Mention.MENTION
 
     def mention(self, update, context: CallbackContext):
+        chat_id = update.message.chat_id
         team = update.message.text
-        _members = self.get_team_members(team)
 
-        if not re.match(f'^({self.make_teams_regex()})$', team):
-            update.message.reply_text(f'Team "{team}" was\'t found, try again')
+        if not re.match(f'^({HandlerHelpers.make_teams_regex(chat_id)})$', team):
+            update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
             return Mention.MENTION
 
-        if _members:
+        members = HandlerHelpers.get_team_members(chat_id, team)
+
+        if members:
             update.message.reply_text(
-                ' '.join(_members),
+                ' '.join(members),
                 reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
             )
         else:
             update.message.reply_text(
-                'Members were\'t found or something went wrong',
+                'Members weren\'t found or something went wrong',
                 reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
             )
 
