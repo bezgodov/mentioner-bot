@@ -1,0 +1,9 @@
+addteam - Add a team
+addmembers - Add members to a team
+getteams - Get all teams in a chat
+mention - Mention a team
+removeteam - Remove a team
+renameteam - Rename a team
+removemembers - Remove members from a team
+cancel - Cancel current running command
+help - Get list of all commands
