@@ -5,6 +5,7 @@ from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, M
 
 from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
+from classes.filters import filters
 
 class RemoveTeam(BaseHandler):
     CHOOSING_END, CHOOSING_TEAM = range(-1, 1)
@@ -12,12 +13,15 @@ class RemoveTeam(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=App.filters.admin),
+                CommandHandler(self.name, self.start, filters=filters.admin & filters.defined_command),
             ],
             states={
-                RemoveTeam.CHOOSING_TEAM: [MessageHandler(Filters.text, self.choose_team)],
+                RemoveTeam.CHOOSING_TEAM: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.choose_team)
+                ],
             },
-            fallbacks=[MessageHandler(Filters.text, self.fallback)]
+            fallbacks=[MessageHandler(Filters.text, self.fallback)],
         )
 
         self.updater.dispatcher.add_handler(handler)

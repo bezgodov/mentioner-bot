@@ -5,6 +5,7 @@ from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, M
 
 from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
+from classes.filters import filters
 
 class AddMembers(BaseHandler):
     CHOOSING_END, CHOOSING_TEAM, CHOOSING_MEMBERS = range(-1, 2)
@@ -12,16 +13,23 @@ class AddMembers(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=App.filters.admin),
+                CommandHandler(self.name, self.start, filters=filters.admin & filters.defined_command),
             ],
             states={
-                AddMembers.CHOOSING_TEAM: [MessageHandler(Filters.text, self.choose_team)],
-                AddMembers.CHOOSING_MEMBERS: [MessageHandler(Filters.text, self.choose_members)],
+                AddMembers.CHOOSING_TEAM: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.choose_team),
+                ],
+                AddMembers.CHOOSING_MEMBERS: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.choose_members)
+                ],
             },
             fallbacks=[MessageHandler(Filters.text, self.fallback)],
         )
 
         self.updater.dispatcher.add_handler(handler)
+        self.updater.dispatcher.handlers
 
     def start(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
@@ -56,11 +64,12 @@ class AddMembers(BaseHandler):
         chat_id = update.message.chat_id
         team = context.user_data['team']
 
+        # set is used to remove duplicated
         members = list(
-            filter(
-                lambda x: re.match(r'@[a-z._-]{5,32}', x.lower(), re.IGNORECASE) and x not in HandlerHelpers.get_team_members(chat_id, team),
+            set(filter(
+                lambda x: re.match(r'^@[0-9a-z._-]{5,32}$', x.lower(), re.IGNORECASE) and x not in HandlerHelpers.get_team_members(chat_id, team),
                 update.message.text.split(' ')
-            )
+            ))
         )
 
         if members:

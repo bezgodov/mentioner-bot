@@ -4,6 +4,7 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler, HandlerHelpers
+from classes.filters import filters
 
 class Mention(BaseHandler):
     CHOOSING_END, MENTION = range(-1, 1)
@@ -11,11 +12,12 @@ class Mention(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start),
+                CommandHandler(self.name, self.start, filters=filters.defined_command),
             ],
             states={
                 Mention.MENTION: [
-                    MessageHandler(Filters.text, self.mention),
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.mention),
                 ],
             },
             fallbacks=[MessageHandler(Filters.text, self.fallback)],

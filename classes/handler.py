@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from telegram import Update
-from telegram.ext import DictPersistence, Dispatcher, CallbackContext
+from telegram import Update, ReplyKeyboardRemove
+from telegram.ext import DictPersistence, Dispatcher, CallbackContext, ConversationHandler
 
 from classes.app import App
 
@@ -15,15 +15,26 @@ class BaseHandler(ABC):
     def init(self):
         pass
 
+    def cancel(self, update: Update, context: CallbackContext):
+        update.message.reply_text(
+            f'Command "/{self.name}" was cancelled',
+            reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
+        )
+        return ConversationHandler.END
+
     def fallback(self, update: Update, context: CallbackContext):
-        update.message.reply_text('Command wasn\'t found or something went wrong')
+        update.message.reply_text(
+            'Something went wrong, try again later',
+            reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
+        )
+        return ConversationHandler.END
 
 class HandlerHelpers():
     @staticmethod
     def get_teams(chat_id: int) -> list:
         return list(map(lambda x: x['name'], App.db.get_teams().find({
             'chat_id': chat_id,
-        }, {'_id': 0, 'name': 1})))
+        }, {'_id': 1, 'name': 1}).sort('_id', -1)))
 
     @staticmethod
     def make_teams_regex(chat_id):

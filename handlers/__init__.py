@@ -1,5 +1,6 @@
 from typing import List, Dict, Callable
 
+from handlers.core import Core
 from handlers.addmembers import AddMembers
 from handlers.addteam import AddTeam
 from handlers.getteams import GetTeams
@@ -16,6 +17,7 @@ def make_handler(handler: Callable, name: str, hint: str) -> Dict:
     }
 
 handlers = [
+    make_handler(Core, 'core', 'Initialize core commands'),
     make_handler(AddTeam, 'addteam', 'Add a team'),
     make_handler(AddMembers, 'addmembers', 'Add members to a team'),
     make_handler(GetTeams, 'getteams', 'Get all teams in a chat'),

@@ -2,12 +2,13 @@ from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext
 
 from classes.handler import BaseHandler, HandlerHelpers
+from classes.filters import filters
 
 class GetTeams(BaseHandler):
     GETTING_END = range(-1, 0)
 
     def init(self):
-        self.updater.dispatcher.add_handler(CommandHandler(self.name, self.get))
+        self.updater.dispatcher.add_handler(CommandHandler(self.name, self.get, filters=filters.defined_command))
 
     def get(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id

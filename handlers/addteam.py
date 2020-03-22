@@ -5,6 +5,7 @@ from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, M
 
 from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
+from classes.filters import filters
 
 class AddTeam(BaseHandler):
     CHOOSING_END, CHOOSING_NAME = range(-1, 1)
@@ -12,12 +13,15 @@ class AddTeam(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=App.filters.admin),
+                CommandHandler(self.name, self.start, filters=filters.admin & filters.defined_command),
             ],
             states={
-                AddTeam.CHOOSING_NAME: [MessageHandler(Filters.text, self.choose_name)],
+                AddTeam.CHOOSING_NAME: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text, self.choose_name),
+                ],
             },
-            fallbacks=[MessageHandler(Filters.text, self.fallback)]
+            fallbacks=[MessageHandler(Filters.text, self.fallback)],
         )
 
         self.updater.dispatcher.add_handler(handler)
@@ -30,9 +34,9 @@ class AddTeam(BaseHandler):
     def choose_name(self, update: Update, context: CallbackContext):
         name = update.message.text
 
-        if re.match(r'[a-zа-яё._-]{2,16}', name.lower(), re.IGNORECASE):
+        if re.match(r'^[0-9a-zа-яё._-]{2,16}$', name.lower(), re.IGNORECASE):
             if App.db.get_teams().find_one({
-                'name': re.compile(name.lower(), re.IGNORECASE),
+                'name': re.compile(f'^{name.lower()}$', re.IGNORECASE),
                 'chat_id': update.message.chat_id
             }):
                 update.message.reply_text(

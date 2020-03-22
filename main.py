@@ -15,6 +15,7 @@ def main():
 
         if issubclass(_handler, BaseHandler):
             handler['handler'](_name)
+            App.handlers.append(handler)
         else:
             raise Exception(f'Handler "{_name}" is not initialized, due to wrong class type')
 

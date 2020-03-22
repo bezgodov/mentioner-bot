@@ -5,6 +5,7 @@ from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, M
 
 from classes.handler import BaseHandler, HandlerHelpers
 from classes.app import App
+from classes.filters import filters
 
 class RenameTeam(BaseHandler):
     CHOOSING_END, CHOOSING_TEAM, CHOOSING_NEW_NAME = range(-1, 2)
@@ -12,13 +13,19 @@ class RenameTeam(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=App.filters.admin),
+                CommandHandler(self.name, self.start, filters=filters.admin & filters.defined_command),
             ],
             states={
-                RenameTeam.CHOOSING_TEAM: [MessageHandler(Filters.text, self.choose_team)],
-                RenameTeam.CHOOSING_NEW_NAME: [MessageHandler(Filters.text, self.choose_new_name)],
+                RenameTeam.CHOOSING_TEAM: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.choose_team)
+                ],
+                RenameTeam.CHOOSING_NEW_NAME: [
+                    CommandHandler('cancel', self.cancel),
+                    MessageHandler(Filters.text & ~filters.cancel, self.choose_new_name)
+                ],
             },
-            fallbacks=[MessageHandler(Filters.text, self.fallback)]
+            fallbacks=[MessageHandler(Filters.text, self.fallback)],
         )
 
         self.updater.dispatcher.add_handler(handler)
@@ -63,7 +70,7 @@ class RenameTeam(BaseHandler):
             )
             return RenameTeam.CHOOSING_NEW_NAME
 
-        if not re.match(r'[a-zа-яё._-]{2,16}', new_team_name.lower(), re.IGNORECASE):
+        if not re.match(r'^[0-9a-zа-яё._-]{2,16}$', new_team_name.lower(), re.IGNORECASE):
             update.message.reply_text(
                 f'Team wasn\'t renamed, cause name "{new_team_name}" contains incorrect symbols, try again',
             )
