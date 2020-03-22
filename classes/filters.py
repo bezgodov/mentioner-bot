@@ -15,19 +15,6 @@ class AdminFilter(BaseFilter):
             admin.user.id for admin in message.chat.get_administrators()
         }
 
-class DefinedCommandFilter(BaseFilter):
-    """ Prevent any running command """
-    name = 'Filters.definedCommand'
-
-    def filter(self, message: Message) -> bool:
-        commands_names = list(map(lambda x: x['name'], App.handlers))
-        command = message.text[1:]
-        if command not in commands_names:
-            message.reply_text('Unrecognized command, type /help to see list of all commands')
-            return False
-
-        return True
-
 class CancelFilter(BaseFilter):
     """ Prevent any running command """
     name = 'Filters.cancel'
@@ -41,6 +28,5 @@ class CancelFilter(BaseFilter):
 class Filters():
     admin = AdminFilter()
     cancel = CancelFilter()
-    defined_command = DefinedCommandFilter()
 
 filters = Filters()

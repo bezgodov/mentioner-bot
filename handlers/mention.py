@@ -12,7 +12,7 @@ class Mention(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=filters.defined_command),
+                CommandHandler(self.name, self.start),
             ],
             states={
                 Mention.MENTION: [

@@ -13,7 +13,7 @@ class RemoveMembers(BaseHandler):
     def init(self):
         handler = ConversationHandler(
             entry_points=[
-                CommandHandler(self.name, self.start, filters=filters.admin & filters.defined_command),
+                CommandHandler(self.name, self.start, filters=filters.admin),
             ],
             states={
                 RemoveMembers.CHOOSING_TEAM: [

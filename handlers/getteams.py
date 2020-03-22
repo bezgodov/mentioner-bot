@@ -8,7 +8,7 @@ class GetTeams(BaseHandler):
     GETTING_END = range(-1, 0)
 
     def init(self):
-        self.updater.dispatcher.add_handler(CommandHandler(self.name, self.get, filters=filters.defined_command))
+        self.updater.dispatcher.add_handler(CommandHandler(self.name, self.get))
 
     def get(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
