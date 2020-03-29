@@ -8,9 +8,9 @@ from classes.config import get_config
 class Mongo():
     def __init__(self):
         self.config = get_config()
-        self.client = MongoClient(
-            f"mongodb://{self.config['MONGO_USERNAME']}:{self.config['MONGO_PASSWORD']}@{self.config['MONGO_HOST']}:{self.config['MONGO_PORT']}"
-        )
+
+        connection = self.config['MONGO_URI'] if self.config['MONGO_URI'] else f"mongodb://{self.config['MONGO_USERNAME']}:{self.config['MONGO_PASSWORD']}@{self.config['MONGO_HOST']}:{self.config['MONGO_PORT']}"
+        self.client = MongoClient(connection)
         self.create()
 
     def create(self):

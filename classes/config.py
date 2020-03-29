@@ -19,6 +19,7 @@ def get_config() -> dict:
         'BOT_TOKEN': get_token(),
         'PROXY_URL': get_proxy(),
 
+        'MONGO_URI': os.getenv('MONGO_URI', ''),
         'MONGO_USERNAME': os.getenv('MONGO_USERNAME', 'root'),
         'MONGO_PASSWORD': os.getenv('MONGO_PASSWORD', 'pass'),
         'MONGO_HOST': os.getenv('MONGO_HOST', 'mongo'),
