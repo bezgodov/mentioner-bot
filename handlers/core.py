@@ -2,6 +2,7 @@ from telegram import Update, ParseMode
 from telegram.ext import run_async, CommandHandler, MessageHandler, CallbackContext, ConversationHandler, Filters
 
 from classes.handler import BaseHandler, HandlerHelpers
+from classes.queue import Queue
 from classes.app import App
 from classes.filters import filters
 
@@ -22,7 +23,10 @@ class Core(BaseHandler):
 
     @run_async
     def help(self, update: Update, context: CallbackContext):
-        update.message.reply_text(
+        timeout = 120
+        Queue.add(update.message.chat.id, update.message.message_id, timeout=timeout)
+
+        message = update.message.reply_text(
             '*Commands for admins:*\n'
             '/addteam – Add team\n'
             '/addmembers – Add members to the chosen team\n'
@@ -38,3 +42,6 @@ class Core(BaseHandler):
             '/cancel – Prevent any running command\n',
             parse_mode=ParseMode.MARKDOWN
         )
+
+        Queue.add(message.chat.id, message.message_id, timeout=timeout)
+        Queue.clean(update.message.chat.id)

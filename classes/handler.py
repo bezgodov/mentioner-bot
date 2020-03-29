@@ -3,6 +3,7 @@ from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import DictPersistence, Dispatcher, CallbackContext, ConversationHandler
 
 from classes.app import App
+from classes.queue import Queue
 
 class BaseHandler(ABC):
     def __init__(self, name):
@@ -16,17 +17,21 @@ class BaseHandler(ABC):
         pass
 
     def cancel(self, update: Update, context: CallbackContext):
-        update.message.reply_text(
+        message = update.message.reply_text(
             f'Command "/{self.name}" was cancelled',
             reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
         )
+        Queue.add(message.chat.id, message.message_id)
+        Queue.clean(message.chat.id, timeout=30)
         return ConversationHandler.END
 
     def fallback(self, update: Update, context: CallbackContext):
-        update.message.reply_text(
+        message = update.message.reply_text(
             'Something went wrong, try again later',
             reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
         )
+        Queue.add(message.chat.id, message.message_id)
+        Queue.clean(message.chat.id, timeout=30)
         return ConversationHandler.END
 
 class HandlerHelpers():
@@ -49,7 +54,7 @@ class HandlerHelpers():
 
     @staticmethod
     def check_teams_existence(update: Update) -> bool:
-        res = len(HandlerHelpers.get_teams(update.message.chat_id)) > 0
+        res = len(HandlerHelpers.get_teams(update.message.chat.id)) > 0
 
         if not res:
             update.message.reply_text(

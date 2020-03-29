@@ -25,3 +25,6 @@ class Mongo():
 
     def get_teams(self) -> Collection:
         return self.get_db()[self.config['MONGO_COLLECTION_NAME']]
+
+    def get_queue(self) -> Collection:
+        return self.get_db()['queue']

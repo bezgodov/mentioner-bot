@@ -4,6 +4,7 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 
 from classes.handler import BaseHandler, HandlerHelpers
+from classes.queue import Queue
 from classes.filters import filters
 
 class Mention(BaseHandler):
@@ -26,25 +27,32 @@ class Mention(BaseHandler):
         self.updater.dispatcher.add_handler(handler)
 
     def start(self, update: Update, context: CallbackContext):
-        chat_id = update.message.chat_id
+        chat_id = update.message.chat.id
+
+        Queue.add(update.message.chat.id, update.message.message_id)
 
         if not HandlerHelpers.check_teams_existence(update):
             return Mention.CHOOSING_END
 
         markup = ReplyKeyboardMarkup(map(lambda x: [x], HandlerHelpers.get_teams(chat_id)), one_time_keyboard=True)
-        update.message.reply_text(
+        message = update.message.reply_text(
             f'Choose a team',
             reply_markup=markup
         )
 
+        Queue.add(message.chat.id, message.message_id)
+
         return Mention.MENTION
 
     def mention(self, update, context: CallbackContext):
-        chat_id = update.message.chat_id
+        Queue.add(update.message.chat.id, update.message.message_id)
+
+        chat_id = update.message.chat.id
         team = update.message.text
 
         if not re.match(f'^({HandlerHelpers.make_teams_regex(chat_id)})$', team):
-            update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
+            message = update.message.reply_text(f'Team "{team}" wasn\'t found, try again')
+            Queue.add(message.chat.id, message.message_id)
             return Mention.MENTION
 
         members = HandlerHelpers.get_team_members(chat_id, team)
@@ -55,9 +63,11 @@ class Mention(BaseHandler):
                 reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
             )
         else:
-            update.message.reply_text(
+            message = update.message.reply_text(
                 'Members weren\'t found or something went wrong',
                 reply_markup=ReplyKeyboardRemove(remove_keyboard=True)
             )
+            Queue.add(message.chat.id, message.message_id)
 
+        Queue.clean(update.message.chat.id, timeout=30)
         return Mention.CHOOSING_END
