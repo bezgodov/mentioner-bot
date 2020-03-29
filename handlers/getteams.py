@@ -22,7 +22,7 @@ class GetTeams(BaseHandler):
             Queue.add(message.chat.id, message.message_id, timeout=300)
         else:
             message = update.message.reply_text('No teams were found')
-            Queue.add(message.chat.id, message.message_i)
+            Queue.add(message.chat.id, message.message_id)
 
         Queue.clean(update.message.chat.id)
         return GetTeams.GETTING_END
