@@ -10,8 +10,17 @@ def get_token() -> str:
         raise ValueError('Bot token wasn\'t set')
     return token
 
+def get_platform() -> str:
+    return os.getenv('PRODUCTION_PLATFORM', 'Local')
+
 def get_proxy() -> str:
     return os.getenv('PROXY_URL', None)
+
+def get_heroku_config() -> dict:
+    return {
+        'HEROKU_APP_NAME': os.getenv('HEROKU_APP_NAME', ''),
+        'HEROKU_PORT': os.getenv('HEROKU_PORT', '8443'),
+    }
 
 def get_config() -> dict:
     return {
