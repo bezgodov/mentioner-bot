@@ -34,7 +34,8 @@ class Updater():
             self.updater.bot.set_webhook(f'https://{app_name}.herokuapp.com/{get_token()}')
         else:
             self.updater.start_polling()
-            self.updater.idle()
+
+        self.updater.idle()
 
     def get_updater(self) -> _Updater:
         return self.updater
