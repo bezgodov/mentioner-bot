@@ -1,3 +1,2 @@
 python-telegram-bot==12.4.2
-telegram==12.4.2
 pymongo==3.9.0
